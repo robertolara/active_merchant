@@ -675,6 +675,18 @@ class BraintreeBlueTest < Test::Unit::TestCase
     assert_equal response.message, 'Some error message'
   end
 
+  def test_refund_unsettled_payment_forces_void
+    Braintree::TransactionGateway.any_instance.
+      expects(:refund).
+      returns(braintree_error_result(message: "Cannot refund a transaction unless it is settled. (91506)"))
+
+    Braintree::TransactionGateway.any_instance.
+      expects(:void).
+      returns(braintree_result)
+
+    @gateway.refund(1.00, 'transaction_id', test: false)
+  end
+
   private
 
   def braintree_result(options = {})

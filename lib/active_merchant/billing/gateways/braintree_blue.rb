@@ -42,6 +42,10 @@ module ActiveMerchant #:nodoc:
 
       self.display_name = 'Braintree (Blue Platform)'
 
+      ERROR_CODES = {
+        cannot_refund_if_unsettled: '91506'
+      }
+
       def initialize(options = {})
         requires!(options, :merchant_id, :public_key, :private_key)
         @merchant_account_id = options[:merchant_account_id]
@@ -94,7 +98,10 @@ module ActiveMerchant #:nodoc:
         money = amount(money).to_s if money
 
         commit do
-          response_from_result(@braintree_gateway.transaction.refund(transaction_id, money))
+          response = response_from_result(@braintree_gateway.transaction.refund(transaction_id, money))
+          return response if response.success?
+
+          response.message =~ /#{ERROR_CODES[:cannot_refund_if_unsettled]}/ ? void(transaction_id) : response
         end
       end
 
